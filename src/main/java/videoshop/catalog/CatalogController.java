@@ -33,6 +33,7 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 class CatalogController {
@@ -52,31 +53,48 @@ class CatalogController {
 	}
 
 	@GetMapping("/dvds")
-	String dvdCatalog(Model model) {
+	String dvdCatalog(@RequestParam(required = false) String query, Model model) {
 
-		model.addAttribute("catalog", catalog.findByType(DiscType.DVD));
+		var discs = (query == null || query.isBlank())
+				? catalog.findByType(DiscType.DVD)
+				: catalog.findByNameContainingIgnoreCase(query, VideoCatalog.DEFAULT_SORT)
+						.filter(disc -> disc.getType() == DiscType.DVD);
+
+		model.addAttribute("catalog", discs);
 		model.addAttribute("title", "catalog.dvd.title");
-
+		model.addAttribute("query", query);
+		model.addAttribute("hasResults", !discs.isEmpty());
 		return "catalog";
+	}
+
+	String dvdCatalog(Model model) {
+		return dvdCatalog(null, model);
 	}
 
 	@GetMapping("/blurays")
-	String blurayCatalog(Model model) {
+	String blurayCatalog(@RequestParam(required = false) String query, Model model) {
 
-		model.addAttribute("catalog", catalog.findByType(DiscType.BLURAY));
+		var discs = (query == null || query.isBlank())
+				? catalog.findByType(DiscType.BLURAY)
+				: catalog.findByNameContainingIgnoreCase(query, VideoCatalog.DEFAULT_SORT)
+						.filter(disc -> disc.getType() == DiscType.BLURAY);
+
+		model.addAttribute("catalog", discs);
 		model.addAttribute("title", "catalog.bluray.title");
-
+		model.addAttribute("query", query);
+		model.addAttribute("hasResults", !discs.isEmpty());
 		return "catalog";
 	}
 
-	// (｡◕‿◕｡)
-	// Befindet sich die angesurfte Url in der Form /foo/5 statt /foo?bar=5 so muss man @PathVariable benutzen
-	// Lektüre: http://spring.io/blog/2009/03/08/rest-in-spring-3-mvc/
+	String blurayCatalog(Model model) {
+		return blurayCatalog(null, model);
+	}
+
 	@GetMapping("/disc/{disc}")
 	String detail(@PathVariable Disc disc, Model model, CommentAndRating form) {
 
-		var quantity = inventory.findByProductIdentifier(disc.getId()) //
-				.map(InventoryItem::getQuantity) //
+		var quantity = inventory.findByProductIdentifier(disc.getId())
+				.map(InventoryItem::getQuantity)
 				.orElse(NONE);
 
 		model.addAttribute("disc", disc);
@@ -98,11 +116,6 @@ class CatalogController {
 		return "redirect:/disc/" + disc.getId();
 	}
 
-	/**
-	 * Describes the payload to be expected to add a comment.
-	 *
-	 * @author Oliver Gierke
-	 */
 	interface CommentAndRating {
 
 		@NotEmpty

@@ -38,7 +38,7 @@ public interface VideoCatalog extends Catalog<Disc> {
 	 * @return the discs of the given type, never {@literal null}.
 	 */
 	Streamable<Disc> findByType(DiscType type, Sort sort);
-
+	Streamable<Disc> findByNameContainingIgnoreCase(String name, Sort sort);
 	/**
 	 * Returns all {@link Disc}s by type ordered by their identifier.
 	 *
